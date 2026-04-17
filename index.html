@@ -42,8 +42,7 @@
     overflow: hidden;
   }
 
-  /* ===== SINGLE SUBTLE HALFTONE =====
-     One slowly-rotating layer, low opacity, no glow, no pulse, no second layer. */
+  /* ===== SINGLE SUBTLE HALFTONE ===== */
   .halftone {
     position: absolute;
     top: 50%;
@@ -71,6 +70,40 @@
     height: 100%;
   }
   .pad { padding: 0 56px; }
+
+  /* ===== DATE/TIME PILL =====
+     Subtle quick-glance info at the very top. Small, navy, low visual weight. */
+  .datetime {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px;
+    background: rgba(255, 255, 255, 0.28);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .datetime .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--navy);
+    opacity: 0.45;
+  }
+  .datetime .time {
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "zero" 0, "ss01" 0;
+  }
 
   .header {
     text-align: center;
@@ -104,7 +137,7 @@
     margin-bottom: 22px;
   }
 
-  /* ===== HOURS — no between-day lines, just dotted leader per row ===== */
+  /* ===== HOURS ===== */
   .hours { list-style: none; }
   .hours li {
     display: grid;
@@ -134,6 +167,48 @@
     letter-spacing: -0.2px;
     font-variant-numeric: lining-nums proportional-nums;
     font-feature-settings: "zero" 0, "ss01" 0;
+  }
+
+  /* "CLOSED TODAY" pill — appears on the current day's row when it's a holiday */
+  .hours li.closed-today {
+    position: relative;
+  }
+  .hours li.closed-today .time {
+    display: none;
+  }
+  .hours li.closed-today .closed-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--red);
+    color: var(--white);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .hours .closed-pill { display: none; }
+  .hours .closed-pill::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--white);
+    opacity: 0.9;
+  }
+
+  /* ===== TODAY ROW — subtle cyan wash + cyan day label ===== */
+  .hours li.today {
+    background: rgba(5, 195, 222, 0.12);
+    border-radius: 10px;
+    padding-left: 14px;
+    padding-right: 14px;
+    margin: 4px -10px;
+  }
+  .hours li.today .day {
+    color: var(--cyan-deep);
   }
 
   .divider {
@@ -171,7 +246,7 @@
   /* ===== APPOINTMENT ===== */
   .appointment {
     text-align: center;
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 500;
     line-height: 1.5;
     color: var(--grey);
@@ -258,8 +333,14 @@
 <body>
 
 <div class="stage">
-  <!-- single subtle halftone layer -->
   <div class="halftone"></div>
+
+  <!-- subtle date/time pill -->
+  <div class="datetime" id="datetime">
+    <span class="date" id="dateLabel">—</span>
+    <span class="dot"></span>
+    <span class="time" id="timeLabel">—</span>
+  </div>
 
   <div class="content">
     <div class="pad">
@@ -271,11 +352,11 @@
 
       <div class="card reveal d3">
         <ul class="hours">
-          <li><span class="day">Monday</span><span class="dotline"></span><span class="time">7:30a – 4:00p</span></li>
-          <li><span class="day">Tuesday</span><span class="dotline"></span><span class="time">7:30a – 4:00p</span></li>
-          <li><span class="day">Wednesday</span><span class="dotline"></span><span class="time">7:30a – 4:00p</span></li>
-          <li><span class="day">Thursday</span><span class="dotline"></span><span class="time">7:30a – 2:00p</span></li>
-          <li><span class="day">Friday</span><span class="dotline"></span><span class="time">7:30a – 4:00p</span></li>
+          <li data-day="1"><span class="day">Monday</span><span class="dotline"></span><span class="time">7:30a – 4:00p</span><span class="closed-pill">Closed Today</span></li>
+          <li data-day="2"><span class="day">Tuesday</span><span class="dotline"></span><span class="time">7:30a – 4:00p</span><span class="closed-pill">Closed Today</span></li>
+          <li data-day="3"><span class="day">Wednesday</span><span class="dotline"></span><span class="time">7:30a – 4:00p</span><span class="closed-pill">Closed Today</span></li>
+          <li data-day="4"><span class="day">Thursday</span><span class="dotline"></span><span class="time">7:30a – 2:00p</span><span class="closed-pill">Closed Today</span></li>
+          <li data-day="5"><span class="day">Friday</span><span class="dotline"></span><span class="time">7:30a – 4:00p</span><span class="closed-pill">Closed Today</span></li>
         </ul>
 
         <div class="divider"></div>
@@ -291,7 +372,7 @@
           </div>
         </div>
 
-        <div class="appointment">
+        <div class="appointment" id="appointmentNote">
           If you would like to meet with our staff in person, please schedule an appointment in advance by contacting us.
         </div>
       </div>
@@ -309,6 +390,144 @@
 </div>
 
 <script>
+  // ============================================================
+  // HOLIDAY LIST — edit this each year to add/remove closed days
+  // Format: 'YYYY-MM-DD': 'Holiday Name'
+  // ============================================================
+  const HOLIDAYS = {
+    // 2026
+    '2026-01-01': "New Year's Day",
+    '2026-01-19': "Martin Luther King Jr. Day",
+    '2026-02-16': "Presidents' Day",
+    '2026-05-25': "Memorial Day",
+    '2026-06-19': "Juneteenth",
+    '2026-07-03': "Independence Day",
+    '2026-09-07': "Labor Day",
+    '2026-11-03': "Election Day",
+    '2026-11-26': "Thanksgiving",
+    '2026-11-27': "Day After Thanksgiving",
+    '2026-12-25': "Christmas Day",
+
+    // 2027 — federal-observed placeholders; confirm/adjust before end of 2026
+    '2027-01-01': "New Year's Day",
+    '2027-01-18': "Martin Luther King Jr. Day",
+    '2027-02-15': "Presidents' Day",
+    '2027-05-31': "Memorial Day",
+    '2027-06-18': "Juneteenth (observed)",
+    '2027-07-05': "Independence Day (observed)",
+    '2027-09-06': "Labor Day",
+    '2027-11-02': "Election Day",
+    '2027-11-25': "Thanksgiving",
+    '2027-11-26': "Day After Thanksgiving",
+    '2027-12-24': "Christmas Day (observed)",
+  };
+
+  // ===== CLOCK =====
+  (function() {
+    const dateEl = document.getElementById('dateLabel');
+    const timeEl = document.getElementById('timeLabel');
+    const dateFmt = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric'
+    });
+    const timeFmt = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
+    function tick() {
+      const now = new Date();
+      dateEl.textContent = dateFmt.format(now);
+      timeEl.textContent = timeFmt.format(now);
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+
+  // ===== CLOSED-DAY LOGIC =====
+  (function() {
+    // Format a Date object as 'YYYY-MM-DD' in local time
+    function ymd(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + day;
+    }
+
+    // Is this date a closed day? Returns { closed: bool, reason: string|null }
+    function closedStatus(d) {
+      const dow = d.getDay(); // 0=Sun, 6=Sat
+      if (dow === 0) return { closed: true, reason: 'the weekend' };
+      if (dow === 6) return { closed: true, reason: 'the weekend' };
+      const key = ymd(d);
+      if (HOLIDAYS[key]) return { closed: true, reason: HOLIDAYS[key], holidayKey: key };
+      return { closed: false, reason: null };
+    }
+
+    // Walk forward from tomorrow until we find an open weekday
+    function findNextOpenDay(fromDate) {
+      const d = new Date(fromDate);
+      for (let i = 0; i < 14; i++) {
+        d.setDate(d.getDate() + 1);
+        const s = closedStatus(d);
+        if (!s.closed) return d;
+      }
+      return null; // failsafe — shouldn't hit this
+    }
+
+    // Format the "we'll reopen" sentence
+    function reopenSentence(today) {
+      const next = findNextOpenDay(today);
+      if (!next) return "We'll reopen soon.";
+      const diffDays = Math.round((next - today) / (1000 * 60 * 60 * 24));
+      const weekdayName = next.toLocaleDateString('en-US', { weekday: 'long' });
+      // Thursday closes at 2pm, everything else at 4pm — opening is always 7:30a
+      const when = (diffDays === 1) ? 'tomorrow' : weekdayName;
+      return "We'll reopen " + when + " at 7:30 AM.";
+    }
+
+    // Apply the right state to the DOM
+    function update() {
+      const now = new Date();
+      const status = closedStatus(now);
+      const note = document.getElementById('appointmentNote');
+
+      // clear any previous flags on day rows
+      document.querySelectorAll('.hours li').forEach(li => {
+        li.classList.remove('closed-today');
+        li.classList.remove('today');
+      });
+
+      // highlight today's row (Mon-Fri only)
+      const dow = now.getDay();
+      if (dow >= 1 && dow <= 5) {
+        const row = document.querySelector('.hours li[data-day="' + dow + '"]');
+        if (row) row.classList.add('today');
+      }
+
+      if (status.closed) {
+        // Flag today's weekday row if it's in the list (Mon-Fri = 1-5)
+        if (dow >= 1 && dow <= 5) {
+          const row = document.querySelector('.hours li[data-day="' + dow + '"]');
+          if (row) row.classList.add('closed-today');
+        }
+        // Update the appointment note
+        let msg;
+        if (status.reason === 'the weekend') {
+          msg = "Our office is closed for the weekend. " + reopenSentence(now);
+        } else {
+          msg = "Our office is closed today for " + status.reason + ". " + reopenSentence(now);
+        }
+        note.textContent = msg;
+      } else {
+        // Open — default message
+        note.textContent = "If you would like to meet with our staff in person, please schedule an appointment in advance by contacting us.";
+      }
+    }
+
+    update();
+    // re-check every minute so the display flips automatically at midnight
+    setInterval(update, 60 * 1000);
+  })();
+
+  // ===== WAITING LIST LANGUAGE CYCLE =====
   (function() {
     const messages = document.querySelectorAll('.waitlist-msg');
     let current = 0;

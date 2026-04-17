@@ -260,13 +260,15 @@
     width: 100%;
     background: var(--red);
     color: var(--white);
-    padding: 40px 36px;
+    padding: 32px 36px 24px;
     position: relative;
     overflow: hidden;
-    min-height: 160px;
+    min-height: 180px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 16px;
   }
   .waitlist-banner::before {
     content: '';
@@ -276,18 +278,19 @@
     pointer-events: none;
   }
 
+  /* Fixed-height message box — every language renders in the same space */
   .waitlist-messages {
     position: relative;
     width: 100%;
-    min-height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    height: 84px;
     z-index: 2;
   }
   .waitlist-msg {
     position: absolute;
-    width: 100%;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     font-family: 'Mona Sans', sans-serif;
     font-size: 32px;
@@ -304,7 +307,7 @@
   .waitlist-msg.tl { text-transform: none; }
   .waitlist-msg.km {
     font-family: 'Noto Sans Khmer', 'Mona Sans', sans-serif;
-    font-size: 24px;
+    font-size: 30px;
     font-weight: 700;
     text-transform: none;
     letter-spacing: 0;
@@ -317,6 +320,28 @@
   .waitlist-msg.exiting {
     opacity: 0;
     transform: translateY(-14px);
+  }
+
+  /* Progress dots — one per language */
+  .waitlist-dots {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+  }
+  .waitlist-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    transition: background 0.4s ease, width 0.4s ease;
+  }
+  .waitlist-dot.active {
+    background: var(--white);
+    width: 22px;
+    border-radius: 4px;
   }
 
   .reveal {
@@ -384,6 +409,12 @@
         <div class="waitlist-msg es">La lista de espera está cerrada actualmente</div>
         <div class="waitlist-msg tl">Sarado pa ang waiting list ngayon</div>
         <div class="waitlist-msg km">ការចុះបញ្ជីទទួលជំនួយ Section 8 ត្រូវបានបិទ</div>
+      </div>
+      <div class="waitlist-dots">
+        <div class="waitlist-dot active"></div>
+        <div class="waitlist-dot"></div>
+        <div class="waitlist-dot"></div>
+        <div class="waitlist-dot"></div>
       </div>
     </div>
   </div>
@@ -530,6 +561,7 @@
   // ===== WAITING LIST LANGUAGE CYCLE =====
   (function() {
     const messages = document.querySelectorAll('.waitlist-msg');
+    const dots = document.querySelectorAll('.waitlist-dot');
     let current = 0;
     const CYCLE_MS = 5000;
     const TRANSITION_MS = 550;
@@ -537,10 +569,16 @@
       const outgoing = messages[current];
       outgoing.classList.remove('active');
       outgoing.classList.add('exiting');
+      dots[current].classList.remove('active');
+
       current = (current + 1) % messages.length;
       const incoming = messages[current];
+
       setTimeout(() => { outgoing.classList.remove('exiting'); }, TRANSITION_MS);
-      setTimeout(() => { incoming.classList.add('active'); }, 80);
+      setTimeout(() => {
+        incoming.classList.add('active');
+        dots[current].classList.add('active');
+      }, 80);
     }, CYCLE_MS);
   })();
 </script>
